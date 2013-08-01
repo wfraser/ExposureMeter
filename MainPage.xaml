@@ -10,7 +10,7 @@
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
     Foreground="{StaticResource PhoneForegroundBrush}"
-    SupportedOrientations="Portrait" Orientation="Portrait"
+    SupportedOrientations="PortraitOrLandscape" Orientation="Portrait"
     shell:SystemTray.IsVisible="True">
 
     <!--LayoutRoot is the root grid where all page content is placed-->
@@ -21,10 +21,12 @@
         </Grid.RowDefinitions>
 
         <!--TitlePanel contains the name of the application and page title-->
+        <!--
         <StackPanel x:Name="TitlePanel" Grid.Row="0" Margin="12,17,0,28">
             <TextBlock Text="EXPOSURE METER" Style="{StaticResource PhoneTextNormalStyle}" Margin="12,0"/>
             <TextBlock Text="Test Page" Margin="9,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}"/>
         </StackPanel>
+        -->
 
         <!--ContentPanel - place additional content here-->
         <Grid x:Name="ContentPanel" Grid.Row="1" Margin="12,0,12,0">
@@ -33,12 +35,17 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             
-            <Button Click="Button_Click"
+            <StackPanel Orientation="Horizontal">
+                <Button x:Name="TestButton"
+                    Click="Button_Click"
                     Padding="20">Test</Button>
+                <ScrollViewer Grid.Row="2">
+                    <TextBlock x:Name="Text"/>
+                </ScrollViewer>
+            </StackPanel>
             
-            <ScrollViewer Grid.Row="1">
-                <TextBlock x:Name="Text"/>
-            </ScrollViewer>
+            <Image x:Name="PreviewImage"
+                   Grid.Row="1"/>
         </Grid>
 
     </Grid>

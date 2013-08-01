@@ -7,6 +7,8 @@ using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using Microsoft.Phone.Controls;
 using Microsoft.Phone.Shell;
@@ -30,73 +32,75 @@ namespace ExposureMeter
         public MainPage()
         {
             InitializeComponent();
-
-            var propertyClasses = new List<Type> 
-            {
-                typeof(KnownCameraPhotoProperties),
-                typeof(KnownCameraGeneralProperties),
-                typeof(KnownCameraAudioVideoProperties)
-            };
-
-            m_guids = new Dictionary<Guid, string>();
-
-            foreach (Type t in propertyClasses)
-            {
-                var properties = t.GetProperties(
-                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static
-                    );
-
-                foreach (PropertyInfo propInfo in properties)
-                {
-                    Guid g = (Guid)propInfo.GetValue(null, null); // Static properties
-                    m_guids.Add(g, propInfo.Name);
-                }
-            }
         }
-
-        private IDictionary<Guid, string> m_guids;
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            Test();
+            TestButton.IsEnabled = false;
+            Test()
+                .ContinueWith(prevTask => Dispatcher.BeginInvoke(() => { TestButton.IsEnabled = true; }));
         }
 
         private MemoryStream m_stream;
 
-        private async Task Test()
+        private int GetOrientation(PhotoCaptureDevice device)
         {
-            var resolutions = PhotoCaptureDevice.GetAvailableCaptureResolutions(CameraSensorLocation.Back);
-            var maxRes = resolutions.OrderByDescending(size => size.Width * size.Height).First();
-            var device = await PhotoCaptureDevice.OpenAsync(CameraSensorLocation.Back, maxRes);
+            int encodedOrientation = 0;
+            int sensorOrientation = (Int32)device.SensorRotationInDegrees;
 
-            device.VendorSpecificDataAvailable += new TypedEventHandler<ICameraCaptureDevice,VendorSpecificDataEventArgs>(
-                (sender, e) =>
+            switch (Orientation)
+            {
+                case PageOrientation.LandscapeLeft:
+                    encodedOrientation = -90 + sensorOrientation;
+                    break;
+                case PageOrientation.LandscapeRight:
+                    encodedOrientation = 90 + sensorOrientation;
+                    break;
+                case PageOrientation.PortraitUp:
+                    encodedOrientation = sensorOrientation;
+                    break;
+                case PageOrientation.PortraitDown:
+                    encodedOrientation = 180 + sensorOrientation;
+                    break;
+            }
+
+            return encodedOrientation;
+        }
+
+        private string DumpProperties(CameraCaptureFrame frame)
+        {
+            if (m_guids == null)
+            {
+                m_guids = new Dictionary<Guid, string>();
+
+                var propertyClasses = new List<Type> 
                 {
-                    System.Diagnostics.Debug.WriteLine("{0}: {1}", e.EventId, e.Data);
-                });
+                    typeof(KnownCameraPhotoProperties),
+                    typeof(KnownCameraGeneralProperties),
+                    typeof(KnownCameraAudioVideoProperties)
+                };
 
-            var sequence = device.CreateCaptureSequence(1);
-            await device.PrepareCaptureSequenceAsync(sequence);
-
-            sequence.Frames[0].DesiredProperties[KnownCameraPhotoProperties.Iso] = 100;
-            sequence.Frames[0].DesiredProperties[KnownCameraPhotoProperties.ExposureTime] = 1e6 / 60; // microseconds
-            sequence.Frames[0].DesiredProperties[KnownCameraPhotoProperties.FlashMode] = FlashState.Off;
-            sequence.Frames[0].DesiredProperties[KnownCameraPhotoProperties.FocusIlluminationMode] = FocusIlluminationMode.Off;
-            sequence.Frames[0].DesiredProperties[KnownCameraPhotoProperties.LockedAutoFocusParameters] = AutoFocusParameters.Exposure;
-
-            m_stream = new MemoryStream();
-            sequence.Frames[0].CaptureStream = m_stream.AsOutputStream();
-
-            sequence.FrameAcquired += new TypedEventHandler<CameraCaptureSequence, FrameAcquiredEventArgs>(
-                (sender, e) =>
+                foreach (Type t in propertyClasses)
                 {
-                    System.Diagnostics.Debug.WriteLine("Frame {0} acquired", e.Index);
-                });
-            await sequence.StartCaptureAsync();
+                    var properties = t.GetProperties(
+                        BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static
+                        );
 
-            ////////
-
-            CameraCaptureFrame frame = sequence.Frames[0];
+                    foreach (PropertyInfo propInfo in properties)
+                    {
+                        if (propInfo.GetMethod.ReturnType == typeof(Guid))
+                        {
+                            Guid g = (Guid)propInfo.GetValue(null, null); // Static properties
+                            m_guids.Add(g, propInfo.Name);
+                        }
+                        else
+                        {
+                            // Non-Guid property?!
+                            System.Diagnostics.Debugger.Break();
+                        }
+                    }
+                }
+            }
 
             string text = string.Empty;
 
@@ -111,18 +115,103 @@ namespace ExposureMeter
                 text += keyName + ": " + prop.Value + "\n";
             }
 
-            /*
-            m_stream.Seek(0, SeekOrigin.Begin);
+            return text;
+        }
+        private IDictionary<Guid, string> m_guids;
 
-            byte[] bytes = new byte[m_stream.Length];
-            m_stream.Read(bytes, 0, (int)m_stream.Length);
-            //TODO: Inspect bytes here, look for F-stop in Exif
+        private void SaveImage(Stream stream, string filename)
+        {
+            stream.Seek(0, SeekOrigin.Begin);
+            new MediaLibrary().SavePicture(filename, stream);
+        }
 
-            m_stream.Seek(0, SeekOrigin.Begin);
-            new MediaLibrary().SavePicture("test.jpg", m_stream);
-             */
+        private double GetAverageLuminosity(BitmapSource source)
+        {
+            var wbmp = new WriteableBitmap(source);
 
-            Dispatcher.BeginInvoke(() => { Text.Text = text; });
+            double total = 0.0;
+            for (int i = 0; i < wbmp.Pixels.Length; i++)
+            {
+                UInt32 argb = (UInt32)wbmp.Pixels[i];
+
+                // There shouldn't be any alpha transparency here.
+                System.Diagnostics.Debug.Assert((argb >> 24) == 0xFF);
+
+                var color = Color.FromArgb(0xFF, (byte)((argb >> 16) & 0xFF), (byte)((argb >> 8) & 0xFF), (byte)(argb & 0xFF));
+                double value = (double)(color.R + color.G + color.B) / (3 * 0xFF);
+
+                total += value;
+            }
+
+            return total / wbmp.Pixels.Length;
+        }
+
+        private async Task Test()
+        {
+            var resolutions = PhotoCaptureDevice.GetAvailableCaptureResolutions(CameraSensorLocation.Back);
+            var maxRes = resolutions.OrderByDescending(size => size.Width * size.Height).First();
+            using (PhotoCaptureDevice device = await PhotoCaptureDevice.OpenAsync(CameraSensorLocation.Back, maxRes))
+            {
+
+                device.VendorSpecificDataAvailable += new TypedEventHandler<ICameraCaptureDevice, VendorSpecificDataEventArgs>(
+                    (sender, e) =>
+                    {
+                        System.Diagnostics.Debug.WriteLine("{0}: {1}", e.EventId, e.Data);
+                    });
+
+                var sequence = device.CreateCaptureSequence(1);
+                await device.PrepareCaptureSequenceAsync(sequence);
+
+                var desiredProperties = new Dictionary<Guid, object>
+                {
+                    { KnownCameraPhotoProperties.Iso,                       100 },
+                    //{ KnownCameraPhotoProperties.ExposureTime,              1e6 / 60 /* microseconds */ },
+                    { KnownCameraPhotoProperties.FlashMode,                 FlashState.Off },
+                    { KnownCameraPhotoProperties.FocusIlluminationMode,     FocusIlluminationMode.Off },
+                    { KnownCameraPhotoProperties.LockedAutoFocusParameters, AutoFocusParameters.Exposure },
+                    { KnownCameraGeneralProperties.EncodeWithOrientation,   GetOrientation(device) },
+                };
+
+                foreach (KeyValuePair<Guid, object> pair in desiredProperties)
+                {
+                    // Seems like setting per frame doesn't work right. Set on device instead.
+                    //sequence.Frames[0].DesiredProperties[pair.Key] = pair.Value;
+                    device.SetProperty(pair.Key, pair.Value);
+                }
+
+                m_stream = new MemoryStream();
+                sequence.Frames[0].CaptureStream = m_stream.AsOutputStream();
+
+                sequence.FrameAcquired += new TypedEventHandler<CameraCaptureSequence, FrameAcquiredEventArgs>(
+                    (sender, e) =>
+                    {
+                        System.Diagnostics.Debug.WriteLine("Frame {0} acquired", e.Index);
+                    });
+                await sequence.StartCaptureAsync();
+
+                ////////
+
+                CameraCaptureFrame frame = sequence.Frames[0];
+
+                m_stream.Seek(0, SeekOrigin.Begin);
+                var img = new BitmapImage();
+                img.SetSource(m_stream);
+
+                UInt32 exposureTime = (UInt32)frame.AppliedProperties[KnownCameraPhotoProperties.ExposureTime];
+                UInt32 iso = (UInt32)frame.AppliedProperties[KnownCameraPhotoProperties.Iso];
+                double lum = GetAverageLuminosity(img);
+
+                string text = string.Format("ISO: {0}\nShutter: {1} sec\nAverage Luminosity: {2:##.###}%", iso, exposureTime / 1e6, lum * 100);
+
+                m_stream = new MemoryStream(); // Reset for the next photo.
+
+                Dispatcher.BeginInvoke(() =>
+                {
+                    Text.Text = text;
+                    PreviewImage.Source = img;
+                });
+
+            }
         }
     }
 }
