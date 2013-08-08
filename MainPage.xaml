@@ -6,48 +6,65 @@
     xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:local="clr-namespace:ExposureMeter"
     mc:Ignorable="d"
     FontFamily="{StaticResource PhoneFontFamilyNormal}"
     FontSize="{StaticResource PhoneFontSizeNormal}"
     Foreground="{StaticResource PhoneForegroundBrush}"
-    SupportedOrientations="PortraitOrLandscape" Orientation="Portrait"
-    shell:SystemTray.IsVisible="True">
+    SupportedOrientations="Landscape" Orientation="LandscapeRight"
+    shell:SystemTray.IsVisible="True"
+    x:Name="RootVisual"
+    Loaded="OnLoaded">
 
-    <!--LayoutRoot is the root grid where all page content is placed-->
-    <Grid x:Name="LayoutRoot" Background="Transparent">
+    <Grid x:Name="LayoutRoot">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
+            
+        <StackPanel Orientation="Horizontal">
+            <Button x:Name="CaptureButton"
+                Click="Button_Click"
+                IsEnabled="False"
+                Padding="20">Meter</Button>
+                
+            <Grid VerticalAlignment="Center">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                    
+                <TextBlock Margin="0,0,5,0">ISO:</TextBlock>
+                <TextBlock Grid.Row="1" Margin="0,0,5,0">Shutter:</TextBlock>
+                <TextBlock Grid.Row="2" Margin="0,0,5,0">Aperture:</TextBlock>
 
-        <!--TitlePanel contains the name of the application and page title-->
-        <!--
-        <StackPanel x:Name="TitlePanel" Grid.Row="0" Margin="12,17,0,28">
-            <TextBlock Text="EXPOSURE METER" Style="{StaticResource PhoneTextNormalStyle}" Margin="12,0"/>
-            <TextBlock Text="Test Page" Margin="9,-7,0,0" Style="{StaticResource PhoneTextTitle1Style}"/>
+                <TextBlock Grid.Column="1"
+                            Text="{Binding ElementName=RootVisual, Path=Camera.ISO, TargetNullValue='--', FallbackValue='--'}"/>
+                <TextBlock Grid.Column="1" Grid.Row="1"
+                            Text="{Binding ElementName=RootVisual, Path=Camera.ShutterSpeed, TargetNullValue='--', FallbackValue='--'}"/>
+                <TextBlock Grid.Column="1" Grid.Row="2"
+                            Text="{Binding ElementName=RootVisual, Path=Camera.ApertureValue, TargetNullValue='--', FallbackValue='--'}"/>
+            </Grid>
         </StackPanel>
-        -->
-
-        <!--ContentPanel - place additional content here-->
-        <Grid x:Name="ContentPanel" Grid.Row="1" Margin="12,0,12,0">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
             
-            <StackPanel Orientation="Horizontal">
-                <Button x:Name="TestButton"
-                    Click="Button_Click"
-                    Padding="20">Test</Button>
-                <ScrollViewer Grid.Row="2">
-                    <TextBlock x:Name="Text"/>
-                </ScrollViewer>
-            </StackPanel>
-            
-            <Image x:Name="PreviewImage"
-                   Grid.Row="1"/>
-        </Grid>
-
+        <Image x:Name="CaptureImage"
+                Grid.Row="1"
+                Visibility="{Binding ElementName=RootVisual, Path=Camera.CaptureVisibility}"
+                Source="{Binding ElementName=RootVisual, Path=Camera.CaptureImage}"/>
+        <Rectangle x:Name="PreviewRectangle"
+                    Grid.Row="1"
+                    Visibility="{Binding ElementName=RootVisual, Path=Camera.PreviewVisibility}"
+                    Fill="{Binding ElementName=RootVisual, Path=Camera.PreviewBrush}"
+                    RenderTransformOrigin="0.5,0.5">
+            <!--<Rectangle.RenderTransform>
+                <RotateTransform Angle="{Binding ElementName=RootVisual, Path=Camera.Orientation}"/>
+            </Rectangle.RenderTransform>-->
+        </Rectangle>
     </Grid>
 
 </phone:PhoneApplicationPage>
