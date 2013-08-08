@@ -21,14 +21,21 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-            
-        <StackPanel Orientation="Horizontal">
+        
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
             <Button x:Name="CaptureButton"
-                Click="Button_Click"
-                IsEnabled="False"
-                Padding="20">Meter</Button>
-                
-            <Grid VerticalAlignment="Center">
+                    Click="Button_Click"
+                    IsEnabled="False"
+                    Padding="20">Meter</Button>
+
+            <Grid VerticalAlignment="Center" Grid.Column="1">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
@@ -38,20 +45,37 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                    
+
                 <TextBlock Margin="0,0,5,0">ISO:</TextBlock>
                 <TextBlock Grid.Row="1" Margin="0,0,5,0">Shutter:</TextBlock>
                 <TextBlock Grid.Row="2" Margin="0,0,5,0">Aperture:</TextBlock>
 
                 <TextBlock Grid.Column="1"
-                            Text="{Binding ElementName=RootVisual, Path=Camera.ISO, TargetNullValue='--', FallbackValue='--'}"/>
+                           Text="{Binding ElementName=RootVisual, Path=Camera.ISO, TargetNullValue='--', FallbackValue='--'}"/>
                 <TextBlock Grid.Column="1" Grid.Row="1"
-                            Text="{Binding ElementName=RootVisual, Path=Camera.ShutterSpeed, TargetNullValue='--', FallbackValue='--'}"/>
+                           Text="{Binding ElementName=RootVisual, Path=Camera.ShutterSpeed, TargetNullValue='--', FallbackValue='--'}"/>
                 <TextBlock Grid.Column="1" Grid.Row="2"
-                            Text="{Binding ElementName=RootVisual, Path=Camera.ApertureValue, TargetNullValue='--', FallbackValue='--'}"/>
-            </Grid>
-        </StackPanel>
+                           Text="{Binding ElementName=RootVisual, Path=Camera.Aperture, TargetNullValue='--', FallbackValue='--'}"/>
             
+            </Grid>
+
+            <TextBlock Grid.Column="2"
+                       FontSize="30"
+                       HorizontalAlignment="Right" VerticalAlignment="Center"
+                       Margin="10">
+                <Run Text="{Binding ElementName=RootVisual, Path=Camera.EVs, TargetNullValue='--', FallbackValue='--'}"/>
+                <Run>EV₁₀₀</Run>
+            </TextBlock>
+
+            <TextBlock Grid.Column="3"
+                       FontSize="30"
+                       HorizontalAlignment="Right" VerticalAlignment="Center"
+                       Margin="10">
+                <Run Text="{Binding ElementName=RootVisual, Path=Camera.AverageLuminosity, TargetNullValue='-- %', FallbackValue='-- %'}"/>
+                <Run>white</Run>
+            </TextBlock>
+        </Grid>
+
         <Image x:Name="CaptureImage"
                 Grid.Row="1"
                 Visibility="{Binding ElementName=RootVisual, Path=Camera.CaptureVisibility}"

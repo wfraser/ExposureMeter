@@ -22,7 +22,7 @@ namespace ExposureMeter
         public Visibility PreviewVisibility
         {
             get { return (Visibility)GetValue(PreviewVisibilityProperty); }
-            set { SetValue(PreviewVisibilityProperty, value); }
+            private set { SetValue(PreviewVisibilityProperty, value); }
         }
 
         public static readonly DependencyProperty CaptureVisibilityProperty = DependencyProperty.Register(
@@ -30,7 +30,7 @@ namespace ExposureMeter
         public Visibility CaptureVisibility
         {
             get { return (Visibility)GetValue(CaptureVisibilityProperty); }
-            set { SetValue(CaptureVisibilityProperty, value); }
+            private set { SetValue(CaptureVisibilityProperty, value); }
         }
 
         public static readonly DependencyProperty CaptureImageProperty = DependencyProperty.Register(
@@ -38,7 +38,7 @@ namespace ExposureMeter
         public BitmapImage CaptureImage
         {
             get { return (BitmapImage)GetValue(CaptureImageProperty); }
-            set { SetValue(CaptureImageProperty, value); }
+            private set { SetValue(CaptureImageProperty, value); }
         }
 
         public static readonly DependencyProperty PreviewBrushProperty = DependencyProperty.Register(
@@ -46,7 +46,7 @@ namespace ExposureMeter
         public Brush PreviewBrush
         {
             get { return (Brush)GetValue(PreviewBrushProperty); }
-            set { SetValue(PreviewBrushProperty, value); }
+            private set { SetValue(PreviewBrushProperty, value); }
         }
 
         public static readonly DependencyProperty OrientationProperty = DependencyProperty.Register(
@@ -54,7 +54,7 @@ namespace ExposureMeter
         public int Orientation
         {
             get { return (int)GetValue(OrientationProperty); }
-            set { SetValue(OrientationProperty, value); }
+            private set { SetValue(OrientationProperty, value); }
         }
 
         public static readonly DependencyProperty ISOProperty = DependencyProperty.Register(
@@ -62,7 +62,7 @@ namespace ExposureMeter
         public string ISO
         {
             get { return (string)GetValue(ISOProperty); }
-            set { SetValue(ISOProperty, value); }
+            private set { SetValue(ISOProperty, value); }
         }
 
         public static readonly DependencyProperty ShutterSpeedProperty = DependencyProperty.Register(
@@ -70,15 +70,31 @@ namespace ExposureMeter
         public string ShutterSpeed
         {
             get { return (string)GetValue(ShutterSpeedProperty); }
-            set { SetValue(ShutterSpeedProperty, value); }
+            private set { SetValue(ShutterSpeedProperty, value); }
         }
 
-        public static readonly DependencyProperty ApertureValueProperty = DependencyProperty.Register(
-            "ApertureValue", typeof(string), typeof(Camera), new PropertyMetadata(null));
-        public string ApertureValue
+        public static readonly DependencyProperty ApertureProperty = DependencyProperty.Register(
+            "Aperture", typeof(string), typeof(Camera), new PropertyMetadata(null));
+        public string Aperture
         {
-            get { return (string)GetValue(ApertureValueProperty); }
-            set { SetValue(ApertureValueProperty, value); }
+            get { return (string)GetValue(ApertureProperty); }
+            private set { SetValue(ApertureProperty, value); }
+        }
+
+        public static readonly DependencyProperty EVsProperty = DependencyProperty.Register(
+            "EVs", typeof(int?), typeof(Camera), new PropertyMetadata(null));
+        public int? EVs
+        {
+            get { return (int?)GetValue(EVsProperty); }
+            private set { SetValue(EVsProperty, value); }
+        }
+
+        public static readonly DependencyProperty AverageLuminosityProperty = DependencyProperty.Register(
+            "AverageLuminosity", typeof(string), typeof(Camera), new PropertyMetadata(null));
+        public string AverageLuminosity
+        {
+            get { return (string)GetValue(AverageLuminosityProperty); }
+            private set { SetValue(AverageLuminosityProperty, value); }
         }
         #endregion
 
@@ -113,6 +129,10 @@ namespace ExposureMeter
         {
             CaptureVisibility = Visibility.Collapsed;
             ISO = null;
+            ShutterSpeed = null;
+            Aperture = null;
+            AverageLuminosity = null;
+            EVs = null;
 
             VideoCaptureDevice videoDevice = CaptureDeviceConfiguration.GetDefaultVideoCaptureDevice();
             if (videoDevice != null)
@@ -185,9 +205,13 @@ namespace ExposureMeter
                     UInt32 iso = (UInt32)frame.AppliedProperties[KnownCameraPhotoProperties.Iso];
                     UInt32 exposureTimeUs = (UInt32)frame.AppliedProperties[KnownCameraPhotoProperties.ExposureTime];
 
+                    double iso100apertureValue = ((double)iso / 100) * FNumberToApertureValue(HardwareFStop);
+
                     ISO = iso.ToString();
                     ShutterSpeed = ExposureTimeToShutterSpeed(exposureTimeUs);
-                    ApertureValue = FStopToString(HardwareFStop);
+                    Aperture = FStopToString(HardwareFStop);
+                    AverageLuminosity = string.Format("{0:P1}", GetAverageLuminosity(image));
+                    EVs = (int)Math.Round(GetEVsAtISO(100, iso, exposureTimeUs), MidpointRounding.AwayFromZero);
 
                     CaptureImage = image;
                     PreviewVisibility = Visibility.Collapsed;
@@ -285,6 +309,25 @@ namespace ExposureMeter
         private static double ApertureValueToFNumber(double apertureValue)
         {
             return Math.Sqrt(Math.Pow(2, apertureValue));
+        }
+
+        private static double FNumberToApertureValue(double fNumber)
+        {
+            return Math.Log(Math.Pow(fNumber, 2), 2);
+        }
+
+        private static double GetApertureValueAtISO(UInt32 desiredISO, UInt32 actualISO)
+        {
+            return FNumberToApertureValue(HardwareFStop) - Math.Log((double)actualISO / desiredISO, 2);
+        }
+
+        private static double GetEVsAtISO(UInt32 desiredISO, UInt32 actualISO, UInt32 exposureTimeUsec)
+        {
+            double apertureValue = GetApertureValueAtISO(desiredISO, actualISO);
+            double exposureTime = (double)exposureTimeUsec / 1e6;
+
+            double ev = Math.Log(Math.Pow(2, apertureValue) / exposureTime, 2);
+            return ev;
         }
 
         private RotateTransform GetBrushRotation()
