@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Resources;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Markup;
 using System.Windows.Navigation;
@@ -57,6 +58,18 @@ namespace ExposureMeter
 
         }
 
+        public static MainViewModel ViewModel
+        {
+            get
+            {
+                if (s_viewModel == null)
+                    s_viewModel = new MainViewModel();
+
+                return s_viewModel;
+            }
+        }
+        private static MainViewModel s_viewModel = null;
+
         // Code to execute when the application is launching (eg, from Start)
         // This code will not execute when the application is reactivated
         private void Application_Launching(object sender, LaunchingEventArgs e)
@@ -67,6 +80,7 @@ namespace ExposureMeter
         // This code will not execute when the application is first launched
         private void Application_Activated(object sender, ActivatedEventArgs e)
         {
+            App.RootFrame.Dispatcher.BeginInvoke(() => s_viewModel.Camera.StartPreview());
         }
 
         // Code to execute when the application is deactivated (sent to background)

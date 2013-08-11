@@ -51,11 +51,11 @@
                 <TextBlock Grid.Row="2" Margin="0,0,5,0">Aperture:</TextBlock>
 
                 <TextBlock Grid.Column="1"
-                           Text="{Binding ElementName=RootVisual, Path=Camera.ISO, TargetNullValue='--', FallbackValue='--'}"/>
+                           Text="{Binding Camera.ISO, TargetNullValue='--', FallbackValue='--'}"/>
                 <TextBlock Grid.Column="1" Grid.Row="1"
-                           Text="{Binding ElementName=RootVisual, Path=Camera.ShutterSpeed, TargetNullValue='--', FallbackValue='--'}"/>
+                           Text="{Binding Camera.ShutterSpeed, TargetNullValue='--', FallbackValue='--'}"/>
                 <TextBlock Grid.Column="1" Grid.Row="2"
-                           Text="{Binding ElementName=RootVisual, Path=Camera.Aperture, TargetNullValue='--', FallbackValue='--'}"/>
+                           Text="{Binding Camera.Aperture, TargetNullValue='--', FallbackValue='--'}"/>
             
             </Grid>
 
@@ -63,7 +63,7 @@
                        FontSize="30"
                        HorizontalAlignment="Right" VerticalAlignment="Center"
                        Margin="10">
-                <Run Text="{Binding ElementName=RootVisual, Path=Camera.EVs, TargetNullValue='--', FallbackValue='--'}"/>
+                <Run Text="{Binding Camera.EVs, TargetNullValue='--', FallbackValue='--'}"/>
                 <Run>EV₁₀₀</Run>
             </TextBlock>
 
@@ -71,20 +71,21 @@
                        FontSize="30"
                        HorizontalAlignment="Right" VerticalAlignment="Center"
                        Margin="10">
-                <Run Text="{Binding ElementName=RootVisual, Path=Camera.AverageLuminosity, TargetNullValue='-- %', FallbackValue='-- %'}"/>
+                <Run Text="{Binding Camera.AverageLuminosity, TargetNullValue='-- %', FallbackValue='-- %'}"/>
                 <Run>white</Run>
             </TextBlock>
         </Grid>
 
         <Image x:Name="CaptureImage"
                 Grid.Row="1"
-                Visibility="{Binding ElementName=RootVisual, Path=Camera.CaptureVisibility}"
-                Source="{Binding ElementName=RootVisual, Path=Camera.CaptureImage}"/>
+                Visibility="{Binding Camera.CaptureVisibility}"
+                Source="{Binding Camera.CaptureImage}"/>
         <Rectangle x:Name="PreviewRectangle"
-                    Grid.Row="1"
-                    Visibility="{Binding ElementName=RootVisual, Path=Camera.PreviewVisibility}"
-                    Fill="{Binding ElementName=RootVisual, Path=Camera.PreviewBrush}"
-                    RenderTransformOrigin="0.5,0.5">
+                   Grid.Row="1"
+                   Visibility="{Binding Camera.PreviewVisibility}"
+                   Fill="{Binding Camera.PreviewBrush}"
+                   SizeChanged="PreviewRectangle_SizeChanged"
+                   RenderTransformOrigin="0.5,0.5">
             <!--<Rectangle.RenderTransform>
                 <RotateTransform Angle="{Binding ElementName=RootVisual, Path=Camera.Orientation}"/>
             </Rectangle.RenderTransform>-->

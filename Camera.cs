@@ -49,12 +49,12 @@ namespace ExposureMeter
             private set { SetValue(PreviewBrushProperty, value); }
         }
 
-        public static readonly DependencyProperty OrientationProperty = DependencyProperty.Register(
-            "Orientation", typeof(int), typeof(Camera), new PropertyMetadata(0));
-        public int Orientation
+        public static readonly DependencyProperty RotationProperty = DependencyProperty.Register(
+            "Rotation", typeof(int), typeof(Camera), new PropertyMetadata(0));
+        public int Rotation
         {
-            get { return (int)GetValue(OrientationProperty); }
-            private set { SetValue(OrientationProperty, value); }
+            get { return (int)GetValue(RotationProperty); }
+            private set { SetValue(RotationProperty, value); }
         }
 
         public static readonly DependencyProperty ISOProperty = DependencyProperty.Register(
@@ -96,6 +96,14 @@ namespace ExposureMeter
             get { return (string)GetValue(AverageLuminosityProperty); }
             private set { SetValue(AverageLuminosityProperty, value); }
         }
+
+        public static readonly DependencyProperty PreviewSizeProperty = DependencyProperty.Register(
+            "PreviewSize", typeof(Size), typeof(Camera), new PropertyMetadata(null));
+        public Size PreviewSize
+        {
+            get { return (Size)GetValue(PreviewSizeProperty); }
+            set { SetValue(PreviewSizeProperty, value); }
+        }
         #endregion
 
         public Camera()
@@ -106,8 +114,6 @@ namespace ExposureMeter
                 { KnownCameraPhotoProperties.FocusIlluminationMode, FocusIlluminationMode.Off }
             };
 
-            m_previewCaptureSource = new CaptureSource();
-
             App.RootFrame.OrientationChanged += RootFrame_OrientationChanged;
         }
 
@@ -115,6 +121,7 @@ namespace ExposureMeter
         private MemoryStream m_captureStream;
         private int m_sensorOrientation;
         private CaptureSource m_previewCaptureSource;
+        private Size m_previewVideoSize;
 
         public async Task Initialize()
         {
@@ -122,12 +129,11 @@ namespace ExposureMeter
             {
                 m_sensorOrientation = (Int32)device.SensorRotationInDegrees;
             }
-            Orientation = GetOrientation();
+            Rotation = GetOrientation();
         }
 
         public void StartPreview()
         {
-            CaptureVisibility = Visibility.Collapsed;
             ISO = null;
             ShutterSpeed = null;
             Aperture = null;
@@ -138,17 +144,21 @@ namespace ExposureMeter
             if (videoDevice != null)
             {
                 var formats = videoDevice.SupportedFormats.ToList();
+                m_previewCaptureSource = new CaptureSource();
                 m_previewCaptureSource.VideoCaptureDevice = videoDevice;
 
                 var previewBrush = new VideoBrush();
-                //previewBrush.Stretch = Stretch.Uniform;
-                previewBrush.RelativeTransform = GetBrushRotation();
+
+                m_previewVideoSize = new Size(videoDevice.SupportedFormats[0].PixelWidth, videoDevice.SupportedFormats[0].PixelHeight);
+                previewBrush.Stretch = Stretch.None;
+                previewBrush.RelativeTransform = GetPreviewBrushTransform(m_previewVideoSize);
                 previewBrush.SetSource(m_previewCaptureSource);
 
                 m_previewCaptureSource.Start();
 
                 PreviewBrush = previewBrush;
                 PreviewVisibility = Visibility.Visible;
+                CaptureVisibility = Visibility.Collapsed;
             }
         }
 
@@ -157,10 +167,13 @@ namespace ExposureMeter
             var capturedEvent = new EventWaitHandle(false, EventResetMode.AutoReset);
             var handler = new EventHandler<CaptureImageCompletedEventArgs>((sender, e) =>
                 {
-                    WriteableBitmap result = e.Result;
+                    WriteableBitmap bitmap = e.Result;
                     var brush = new ImageBrush();
-                    brush.ImageSource = result;
-                    brush.RelativeTransform = GetBrushRotation();
+                    brush.ImageSource = bitmap;
+                    brush.Stretch = Stretch.None;
+                    brush.RelativeTransform = GetPreviewBrushTransform(
+                        new Size(bitmap.PixelWidth, bitmap.PixelHeight));
+
                     PreviewBrush = brush;
                     capturedEvent.Set();
                 });
@@ -188,7 +201,7 @@ namespace ExposureMeter
                         }
                     }
 
-                    device.SetProperty(KnownCameraGeneralProperties.EncodeWithOrientation, Orientation);
+                    device.SetProperty(KnownCameraGeneralProperties.EncodeWithOrientation, Rotation);
 
                     m_captureStream = new MemoryStream();
                     CameraCaptureSequence sequence = device.CreateCaptureSequence(1);
@@ -214,37 +227,13 @@ namespace ExposureMeter
                     EVs = (int)Math.Round(GetEVsAtISO(100, iso, exposureTimeUs), MidpointRounding.AwayFromZero);
 
                     CaptureImage = image;
-                    PreviewVisibility = Visibility.Collapsed;
                     CaptureVisibility = Visibility.Visible;
+                    PreviewVisibility = Visibility.Collapsed;
                 }
             }
             catch (Exception)
             {
                 //TODO
-            }
-        }
-
-        public void FixIso(UInt32? iso)
-        {
-            if (iso.HasValue)
-            {
-                m_desiredProperties[KnownCameraPhotoProperties.Iso] = iso.Value;
-            }
-            else
-            {
-                m_desiredProperties.Remove(KnownCameraPhotoProperties.Iso);
-            }
-        }
-
-        public void FixExposureTime(UInt32? exposureTime)
-        {
-            if (exposureTime.HasValue)
-            {
-                m_desiredProperties[KnownCameraPhotoProperties.ExposureTime] = exposureTime.Value;
-            }
-            else
-            {
-                m_desiredProperties.Remove(KnownCameraPhotoProperties.ExposureTime);
             }
         }
 
@@ -330,17 +319,24 @@ namespace ExposureMeter
             return ev;
         }
 
-        private RotateTransform GetBrushRotation()
+        private Transform GetPreviewBrushTransform(Size sourceSize)
         {
-            var rotation = new RotateTransform();
-            rotation.CenterX = 0.5;
-            rotation.CenterY = 0.5;
+            var transform = new CompositeTransform();
+            transform.CenterX = 0.5;
+            transform.CenterY = 0.5;
 
-            var orientationBinding = new Binding("Orientation");
+            var orientationBinding = new Binding("Rotation");
             orientationBinding.Source = this;
-            BindingOperations.SetBinding(rotation, RotateTransform.AngleProperty, orientationBinding);
+            BindingOperations.SetBinding(transform, CompositeTransform.RotationProperty, orientationBinding);
 
-            return rotation;
+            var sizeBinding = new Binding("PreviewSize");
+            sizeBinding.Source = this;
+            sizeBinding.Converter = new SizeToScaleConverter();
+            sizeBinding.ConverterParameter = sourceSize;
+            BindingOperations.SetBinding(transform, CompositeTransform.ScaleXProperty, sizeBinding);
+            BindingOperations.SetBinding(transform, CompositeTransform.ScaleYProperty, sizeBinding);
+
+            return transform;
         }
 
         private static string FStopToString(double value)
@@ -385,7 +381,7 @@ namespace ExposureMeter
 
         private void RootFrame_OrientationChanged(object sender, OrientationChangedEventArgs e)
         {
-            Orientation = GetOrientation();
+            Rotation = GetOrientation();
         }
 
         private int GetOrientation()
