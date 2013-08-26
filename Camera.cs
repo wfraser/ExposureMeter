@@ -154,7 +154,14 @@ namespace ExposureMeter
                 previewBrush.RelativeTransform = GetPreviewBrushTransform(m_previewVideoSize);
                 previewBrush.SetSource(m_previewCaptureSource);
 
-                m_previewCaptureSource.Start();
+                try
+                {
+                    m_previewCaptureSource.Start();
+                }
+                catch (Exception ex)
+                {
+                    //TODO: figure out what to do here!
+                }
 
                 PreviewBrush = previewBrush;
                 PreviewVisibility = Visibility.Visible;
@@ -203,6 +210,10 @@ namespace ExposureMeter
 
                     device.SetProperty(KnownCameraGeneralProperties.EncodeWithOrientation, Rotation);
 
+                    if (m_captureStream != null)
+                    {
+                        m_captureStream.Dispose();
+                    }
                     m_captureStream = new MemoryStream();
                     CameraCaptureSequence sequence = device.CreateCaptureSequence(1);
                     await device.PrepareCaptureSequenceAsync(sequence);
@@ -247,11 +258,11 @@ namespace ExposureMeter
         private static double ScreenHeight = App.Current.Host.Content.ActualHeight;
 
         // Find the capture resolution that's closest to the screen resolution.
-        // If there's a tie, return the higher resolution.
+        // If there's a tie, return the lower resolution.
         private static Windows.Foundation.Size s_captureResolution =
             PhotoCaptureDevice.GetAvailableCaptureResolutions(CameraSensorLocation.Back)
                 .OrderBy(size => Math.Abs(size.Width / size.Height - ScreenHeight / ScreenWidth)) // Intentionally backwards: screen is portrait, sensor is landscape.
-                .ThenByDescending(size => size.Width * size.Height)
+                .ThenBy(size => size.Width * size.Height)
                 .First();
 
         // List of F-numbers traditionally listed on cameras, in 1/3 stop increments,
@@ -336,6 +347,24 @@ namespace ExposureMeter
             BindingOperations.SetBinding(transform, CompositeTransform.ScaleXProperty, sizeBinding);
             BindingOperations.SetBinding(transform, CompositeTransform.ScaleYProperty, sizeBinding);
 
+            return transform;
+        }
+
+        private Transform GetPreviewBrushTransform2()
+        {
+            var transform = new TransformGroup();
+            var rotate = new RotateTransform();
+            var scale = new ScaleTransform();
+
+            var angleBinding = new Binding("Rotation");
+            angleBinding.Source = this;
+            BindingOperations.SetBinding(rotate, RotateTransform.AngleProperty, angleBinding);
+
+
+
+
+            transform.Children.Add(rotate);
+            transform.Children.Add(scale);
             return transform;
         }
 

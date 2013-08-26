@@ -17,79 +17,144 @@
     Loaded="OnLoaded">
 
     <Grid x:Name="LayoutRoot">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
-        
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+        <local:SwipePanel x:Name="Swipe">
+            <Grid x:Name="CameraPane">
 
-            <Button x:Name="CaptureButton"
-                    Click="Button_Click"
-                    IsEnabled="False"
-                    Padding="20">Meter</Button>
-
-            <Grid VerticalAlignment="Center" Grid.Column="1">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
 
-                <TextBlock Margin="0,0,5,0">ISO:</TextBlock>
-                <TextBlock Grid.Row="1" Margin="0,0,5,0">Shutter:</TextBlock>
-                <TextBlock Grid.Row="2" Margin="0,0,5,0">Aperture:</TextBlock>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Column="1"
-                           Text="{Binding Camera.ISO, TargetNullValue='--', FallbackValue='--'}"/>
-                <TextBlock Grid.Column="1" Grid.Row="1"
-                           Text="{Binding Camera.ShutterSpeed, TargetNullValue='--', FallbackValue='--'}"/>
-                <TextBlock Grid.Column="1" Grid.Row="2"
-                           Text="{Binding Camera.Aperture, TargetNullValue='--', FallbackValue='--'}"/>
-            
+                    <Button x:Name="CaptureButton"
+                            Click="Button_Click"
+                            IsEnabled="False"
+                            Padding="20">Meter</Button>
+
+                    <Grid VerticalAlignment="Center" Grid.Column="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Margin="0,0,5,0">ISO:</TextBlock>
+                        <TextBlock Grid.Row="1" Margin="0,0,5,0">Shutter:</TextBlock>
+                        <TextBlock Grid.Row="2" Margin="0,0,5,0">Aperture:</TextBlock>
+
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding Camera.ISO, TargetNullValue='--', FallbackValue='--'}"/>
+                        <TextBlock Grid.Column="1" Grid.Row="1"
+                                   Text="{Binding Camera.ShutterSpeed, TargetNullValue='--', FallbackValue='--'}"/>
+                        <TextBlock Grid.Column="1" Grid.Row="2"
+                                   Text="{Binding Camera.Aperture, TargetNullValue='--', FallbackValue='--'}"/>
+
+                    </Grid>
+
+                    <TextBlock Grid.Column="2"
+                               FontSize="30"
+                               HorizontalAlignment="Right" VerticalAlignment="Center"
+                               Margin="10">
+                        <Run Text="{Binding Camera.EVs, TargetNullValue='--', FallbackValue='--'}"/>
+                        <Run>EV₁₀₀</Run>
+                    </TextBlock>
+
+                    <TextBlock Grid.Column="3"
+                               FontSize="30"
+                               HorizontalAlignment="Right" VerticalAlignment="Center"
+                               Margin="10">
+                        <Run Text="{Binding Camera.AverageLuminosity, TargetNullValue='-- %', FallbackValue='-- %'}"/>
+                        <Run>white</Run>
+                    </TextBlock>
+                </Grid>
+
+                <Image x:Name="CaptureImage"
+                        Grid.Row="1"
+                        Visibility="{Binding Camera.CaptureVisibility}"
+                        Source="{Binding Camera.CaptureImage}"/>
+                <Rectangle x:Name="PreviewRectangle"
+                           Grid.Row="1"
+                           Visibility="{Binding Camera.PreviewVisibility}"
+                           Fill="{Binding Camera.PreviewBrush}"
+                           SizeChanged="PreviewRectangle_SizeChanged"
+                           RenderTransformOrigin="0.5,0.5">
+                    <!--<Rectangle.RenderTransform>
+                        <RotateTransform Angle="{Binding ElementName=RootVisual, Path=Camera.Orientation}"/>
+                    </Rectangle.RenderTransform>-->
+                </Rectangle>
             </Grid>
 
-            <TextBlock Grid.Column="2"
-                       FontSize="30"
-                       HorizontalAlignment="Right" VerticalAlignment="Center"
-                       Margin="10">
-                <Run Text="{Binding Camera.EVs, TargetNullValue='--', FallbackValue='--'}"/>
-                <Run>EV₁₀₀</Run>
-            </TextBlock>
+            <Grid x:Name="SettingsPane">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="4*"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
 
-            <TextBlock Grid.Column="3"
-                       FontSize="30"
-                       HorizontalAlignment="Right" VerticalAlignment="Center"
-                       Margin="10">
-                <Run Text="{Binding Camera.AverageLuminosity, TargetNullValue='-- %', FallbackValue='-- %'}"/>
-                <Run>white</Run>
-            </TextBlock>
-        </Grid>
+                <Grid Grid.ColumnSpan="3">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
 
-        <Image x:Name="CaptureImage"
-                Grid.Row="1"
-                Visibility="{Binding Camera.CaptureVisibility}"
-                Source="{Binding Camera.CaptureImage}"/>
-        <Rectangle x:Name="PreviewRectangle"
-                   Grid.Row="1"
-                   Visibility="{Binding Camera.PreviewVisibility}"
-                   Fill="{Binding Camera.PreviewBrush}"
-                   SizeChanged="PreviewRectangle_SizeChanged"
-                   RenderTransformOrigin="0.5,0.5">
-            <!--<Rectangle.RenderTransform>
-                <RotateTransform Angle="{Binding ElementName=RootVisual, Path=Camera.Orientation}"/>
-            </Rectangle.RenderTransform>-->
-        </Rectangle>
+                    <TextBlock VerticalAlignment="Center"
+                               HorizontalAlignment="Center"
+                               FontSize="30">
+                        <Run Text="{Binding Camera.AverageLuminosity, TargetNullValue='-- %', FallbackValue='-- %'}"/>
+                        <Run>white</Run>
+                    </TextBlock>
+
+                    <local:ModeControl Grid.Column="1"/>
+
+                    <TextBlock Grid.Column="2"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Center"
+                               FontSize="40">
+                        <Run Text="{Binding Camera.EVs, TargetNullValue='--', FallbackValue='--'}"/>
+                        <Run>EV₁₀₀</Run>
+                    </TextBlock>
+                </Grid>
+
+                <TextBlock Grid.Row="1" Grid.Column="0"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center">
+                    TODO: ISO goes here
+                </TextBlock>
+                <TextBlock Grid.Row="1" Grid.Column="1"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center">
+                    TODO: Aperture goes here
+                </TextBlock>
+                <TextBlock Grid.Row="1" Grid.Column="2"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center">
+                    TODO: Shutter goes here
+                </TextBlock>
+
+                <TextBlock Grid.Row="2" Grid.ColumnSpan="3"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center">
+                    TODO: Exposure compensation goes here
+                </TextBlock>
+            </Grid>
+        </local:SwipePanel>
     </Grid>
 
 </phone:PhoneApplicationPage>

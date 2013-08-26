@@ -94,6 +94,9 @@
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
     <Compile Include="Camera.cs" />
+    <Compile Include="Controls\ModeControl.xaml.cs">
+      <DependentUpon>ModeControl.xaml</DependentUpon>
+    </Compile>
     <Compile Include="MainPage.xaml.cs">
       <DependentUpon>MainPage.xaml</DependentUpon>
     </Compile>
@@ -105,12 +108,17 @@
       <DependentUpon>AppResources.resx</DependentUpon>
     </Compile>
     <Compile Include="SizeToScaleConverter.cs" />
+    <Compile Include="Controls\SwipePanel.cs" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </ApplicationDefinition>
+    <Page Include="Controls\ModeControl.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="MainPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
